@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib
 matplotlib.use('TkAgg')
+import csv
 
 import matplotlib.pyplot as plt
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -16,6 +17,12 @@ from sklearn.decomposition import TruncatedSVD
 from sklearn.preprocessing import label_binarize
 
 from sklearn.externals import joblib
+
+# ParamSearch
+
+from sklearn.model_selection import GridSearchCV
+
+# Loading Data
 
 from pymongo import MongoClient
 
@@ -40,38 +47,45 @@ for post in agingcare.find({"resource_topic": {"$nin": excluded_categories}}, {"
 
 x_train, x_test, y_train, y_test = model_selection.train_test_split(x, y, test_size=0.2)
 
-print(len(x))
-
 ## Tf-Idf vectorization
 tfidf_vect = TfidfVectorizer(lowercase=True, stop_words='english', sublinear_tf=True)
 x_train = tfidf_vect.fit_transform(x_train)
 x_test = tfidf_vect.transform(x_test)
 
-## Dimensionality reduction
-# svd = TruncatedSVD(n_components=500, random_state=42)
-# x_train = svd.fit_transform(x_train)
-# x_test = svd.transform(x_test)
+## Naive Bayes Param Selection
+
+params = { 'alpha': [1e-10, 0.2, 0.4, 0.6, 0.8, 1.0] }
 
 ## Naive Bayes classifier
 clf_NB = BernoulliNB()
+
+clf_NB = GridSearchCV(clf_NB, params)
 clf_NB.fit(x_train, y_train)
 
-y_hat = clf_NB.predict(x_test)
+with open('NB_CV_results.csv', 'wb+') as f:
+	writer = csv.writer(f)
+	writer.writerow(clf_NB.cv_results_['params'])
+	writer.writerow(clf_NB.cv_results_['mean_test_score'])
+	writer.writerow([clf_NB.best_params_])
+	writer.writerow([clf_NB.best_score_])
 
-print(accuracy_score(y_hat, y_test))
-print(recall_score(y_hat, y_test, average='weighted'))
-print(precision_score(y_hat, y_test, average='weighted'))
+print('testing SVC')
 
-## SVM Classifier
 
-clf_SVC = SVC(kernel=cosine_similarity)
+## SVM classifier
+
+# params = { 'kernel': [cosine_similarity, 'rbf'], 'C': [1] }
+# params = { 'kernel': [cosine_similarity, 'rbf'], 'C': [0.1, 1, 10, 100, 1000], 'gamma': [1e-3, 1e-4] }
+params = { 'kernel': [cosine_similarity], 'C': [0.1, 1, 10, 100, 1000], 'gamma': [1e-3, 1e-4] }
+
+clf_SVC = SVC()
+clf_SVC = GridSearchCV(clf_SVC, params)
 clf_SVC.fit(x_train, y_train)
 
-y_hat = clf_SVC.predict(x_test)
-print(accuracy_score(y_hat, y_test))
-print(recall_score(y_hat, y_test, average='weighted'))
-print(precision_score(y_hat, y_test, average='weighted'))
+with open('SVC_CV_results.csv', 'wb+') as f:
+	writer = csv.writer(f)
+	writer.writerow(clf_SVC.cv_results_['params'])
+	writer.writerow(clf_SVC.cv_results_['mean_test_score'])
+	writer.writerow([clf_SVC.best_params_])
+	writer.writerow([clf_SVC.best_score_])
 
-joblib.dump(tfidf_vect, 'vectorizer_2.pkl')
-joblib.dump(clf_SVC, 'SVC.pkl')
-joblib.dump(clf_NB, 'NB.pkl')
