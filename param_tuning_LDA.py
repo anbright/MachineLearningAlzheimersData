@@ -56,7 +56,7 @@ tf_feature_names = tf_vectorizer.get_feature_names()
 print 'Running Gridsearch...'
 #tuned_parameters = [{'n_components': [5, 6]}]
 
-tuned_parameters = [{'n_components': [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], 'learning method': ['batch', 'online'], 'learning_decay': [0.51, 0.6, 0.7, 0.8, 0.9, 1.0], 'learning_offset': [1, 5, 10, 20, 100], 'batch_size': [64, 128, 256]}]
+tuned_parameters = [{'n_components': [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], 'learning_method': ['batch', 'online'], 'learning_decay': [0.51, 0.6, 0.7, 0.8, 0.9, 1.0], 'learning_offset': [1, 5, 10, 20, 100], 'batch_size': [64, 128, 256]}]
 
 clf = GridSearchCV(LatentDirichletAllocation(), tuned_parameters, cv=5, verbose=3)
 clf.fit(tf)
