@@ -2,12 +2,11 @@ import numpy as np
 from pymongo import MongoClient
 import os.path
 import unicodedata
+import pickle
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.pipeline import Pipeline
-from sklearn.decomposition import LatentDirichletAllocation
 from sklearn.feature_extraction import text
-from sklearn.model_selection import train_test_split
-import pickle
+from sklearn.decomposition import NMF
 
 def print_top_words(model, feature_names, n_top_words):
     for topic_idx, topic in enumerate(model.components_):
@@ -17,7 +16,6 @@ def print_top_words(model, feature_names, n_top_words):
         print(message)
     print '\n'
 
-FLAG = False
 NUM_EXAMPLES = 29000
 NUM_TOPICS = 10
 dataArr = None
@@ -43,36 +41,14 @@ else:
   with open('data.pkl', 'wb') as output:
     pickle.dump(dataArr, output, pickle.HIGHEST_PROTOCOL)
 
-print 'Processing data...'
-stop_words = text.ENGLISH_STOP_WORDS.union(['just', 'know', 'http', 'like', 'time', 'good'])
-tf_vectorizer = CountVectorizer(max_df=0.95, min_df=2, stop_words='english')
-tf = tf_vectorizer.fit_transform(dataArr)
-'''lda_clf = Pipeline([('count_vect', CountVectorizer(stop_words='english', lowercase=True)),
-                    ('tfidf', TfidfVectorizer(norm='l2')),
-                    ('clf', lda)])'''
-tf_train, tf_test = train_test_split(tf, test_size=0.4, random_state=519)
-tf_feature_names = tf_vectorizer.get_feature_names()
+print 'Extracting tf-idf features for NMF...'
+tfidf_vectorizer = TfidfVectorizer(max_df=0.95, min_df=2, stop_words='english')
 
-if FLAG and os.path.isfile('ldaModel.pkl'):
-  with open('ldaModel.pkl', 'rb') as input:
-    lda = pickle.load(input)
-else:
-  lda = LatentDirichletAllocation(n_components=NUM_TOPICS, max_iter=10, learning_method='online', learning_offset=50, random_state=519)
-  print 'Fitting Model...'
-  lda.fit(tf_train)
-  with open('ldaModel.pkl', 'wb') as output:
-    pickle.dump(lda, output, pickle.HIGHEST_PROTOCOL)
+tfidf = tfidf_vectorizer.fit_transform(dataArr)
 
-print ('\nTopics in LDA model:')
-print_top_words(lda, tf_feature_names, 5)
+print 'Fitting the NMF model with tf-idf features...'
+nmf = NMF(n_components=NUM_TOPICS, random_state=519, alpha=.1, l1_ratio=.5).fit(tfidf)
 
-training_features = lda.transform(tf_train)
-print tf_train[0].shape
-print training_features[0]
-print '\n'
-print training_features[1]
-
-print 'LDA Maxlikelihood score:'
-print lda.score(tf_train)
-print 'LDA Score on test'
-print lda.score(tf_test)
+print '\nTopics in NMF model:'
+tfidf_feature_names = tfidf_vectorizer.get_feature_names()
+print_top_words(nmf, tfidf_feature_names, n_top_words)
