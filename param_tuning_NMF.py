@@ -2,12 +2,12 @@ import numpy as np
 from pymongo import MongoClient
 import os.path
 import unicodedata
+import pickle
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.pipeline import Pipeline
-from sklearn.decomposition import LatentDirichletAllocation
 from sklearn.feature_extraction import text
+from sklearn.decomposition import NMF
 from sklearn.model_selection import GridSearchCV
-import pickle
 
 def print_top_words(model, feature_names, n_top_words):
     for topic_idx, topic in enumerate(model.components_):
@@ -20,7 +20,7 @@ def print_top_words(model, feature_names, n_top_words):
 NUM_EXAMPLES = 29000
 NUM_TOPICS = 10
 dataArr = None
-print 'LDA parameter hypertuning:'
+print 'LDA:'
 print 'Getting data...'
 if os.path.isfile('data.pkl'):
   with open('data.pkl', 'rb') as input:
@@ -42,26 +42,16 @@ else:
   with open('data.pkl', 'wb') as output:
     pickle.dump(dataArr, output, pickle.HIGHEST_PROTOCOL)
 
-print 'Processing data...'
+print 'Extracting tf-idf features for NMF...'
+tfidf_vectorizer = TfidfVectorizer(max_df=0.95, min_df=2, stop_words='english')
 
-stop_words = text.ENGLISH_STOP_WORDS.union(['just', 'know', 'http', 'like', 'time', 'good'])
-tf_vectorizer = CountVectorizer(max_df=0.95, min_df=2, stop_words='english')
-tf = tf_vectorizer.fit_transform(dataArr)
-'''lda_clf = Pipeline([('count_vect', CountVectorizer(stop_words='english', lowercase=True)),
-                    ('tfidf', TfidfVectorizer(norm='l2')),
-                    ('clf', lda)])'''
+tfidf = tfidf_vectorizer.fit_transform(dataArr)
 
-tf_feature_names = tf_vectorizer.get_feature_names()
-
-print 'Running Gridsearch...'
-#tuned_parameters = [{'n_components': [5, 6]}]
-
-print 'Valid parameters are:'
-#tuned_parameters = [{'learning_method': ['batch', 'online']}]
-tuned_parameters = [{'n_components': [5, 10, 15], 'learning_method': ['batch'], 'learning_decay': [0.51, 0.6, 0.7, 0.8, 0.9, 1.0], 'batch_size': [64, 128, 256]}]
-
-clf = GridSearchCV(LatentDirichletAllocation(), tuned_parameters, cv=3, verbose=3)
-clf.fit(tf)
+print 'Fitting the NMF model with tf-idf features...'
+tuned_parameters = [{'n_components': [5, 10]}]
+#tuned_parameters = [{'n_components': [5, 10, 15], solver: ['cd', 'mu'], beta_loss: ['frobenius', 'kullback-leibler', 'itakura-saito'], alpha: [0, 0.01, 0.1, 1.0, 10.0], l1_ratio: [0, 0.01, 0.1, 1.0, 10.0]}]
+clf = GridSearchCV(NMF(), tuned_parameters, cv=3, verbose=3)
+clf.fit(tfidf)
 
 print 'Best params set found on development set:'
 print clf.best_params_
