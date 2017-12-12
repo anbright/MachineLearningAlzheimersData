@@ -4,7 +4,7 @@ matplotlib.use('TkAgg')
 
 import matplotlib.pyplot as plt
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics import accuracy_score, recall_score, precision_score, roc_curve, auc
+from sklearn.metrics import accuracy_score, recall_score, precision_score, confusion_matrix, roc_curve, auc
 from sklearn import model_selection
 
 from sklearn.naive_bayes import BernoulliNB
@@ -40,7 +40,7 @@ for post in agingcare.find({"resource_topic": {"$nin": excluded_categories}}, {"
 
 x_train, x_test, y_train, y_test = model_selection.train_test_split(x, y, test_size=0.2)
 
-print(len(x))
+print("n=", len(x))
 
 ## Tf-Idf vectorization
 tfidf_vect = TfidfVectorizer(lowercase=True, stop_words='english', sublinear_tf=True)
@@ -58,20 +58,14 @@ clf_NB.fit(x_train, y_train)
 
 y_hat = clf_NB.predict(x_test)
 
-print(accuracy_score(y_hat, y_test))
-print(recall_score(y_hat, y_test, average='weighted'))
-print(precision_score(y_hat, y_test, average='weighted'))
+print("NB accuracy: ", accuracy_score(y_test, y_hat))
+print("NB recall: ", recall_score(y_test, y_hat, average='weighted'))
+print("NB precision: ", precision_score(y_test, y_hat, average='weighted'))
 
-## SVM Classifier
-
-clf_SVC = SVC(kernel=cosine_similarity)
-clf_SVC.fit(x_train, y_train)
-
-y_hat = clf_SVC.predict(x_test)
-print(accuracy_score(y_hat, y_test))
-print(recall_score(y_hat, y_test, average='weighted'))
-print(precision_score(y_hat, y_test, average='weighted'))
+print "y_test[0]=", y_test[0]
+print "y_hat[0]=", y_hat[0]
+print "NB confusion:"
+print confusion_matrix(y_test, y_hat)
 
 joblib.dump(tfidf_vect, 'vectorizer_2.pkl')
-joblib.dump(clf_SVC, 'SVC.pkl')
 joblib.dump(clf_NB, 'NB.pkl')
