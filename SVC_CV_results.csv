@@ -1,0 +1,4 @@
+"{'kernel': <function cosine_similarity at 0x10a81eaa0>, 'C': 1}","{'kernel': 'rbf', 'C': 1}"
+0.8125,0.11079545454545454
+"{'kernel': <function cosine_similarity at 0x10a81eaa0>, 'C': 1}"
+0.8125
