@@ -93,3 +93,67 @@ joblib.dump(tfidf_vect, 'vectorizer_2.pkl')
 joblib.dump(clf_SVC, 'SVC.pkl')
 joblib.dump(clf_NB, 'NB.pkl')
 
+
+## ROC Curves
+lw = 2
+plt.figure()
+
+categories = np.unique(y)
+n_classes = categories.shape[0]
+y_test_binary = label_binarize(y_test, classes=categories)
+
+fpr = dict()
+tpr = dict()
+roc_auc = dict()
+
+# NB
+decision_NB = clf_NB.predict_proba(x_test)
+
+for i in range(n_classes):
+	fpr[i], tpr[i], _ = roc_curve(y_test_binary[:, i], decision_NB[:, i])
+
+all_fpr = np.unique(np.concatenate([fpr[i] for i in range(n_classes)]))
+
+mean_tpr = np.zeros_like(all_fpr)
+for i in range(n_classes):
+    mean_tpr += interp(all_fpr, fpr[i], tpr[i])
+mean_tpr /= n_classes
+
+fpr["macro"] = all_fpr
+tpr["macro"] = mean_tpr
+roc_auc["macro"] = auc(fpr["macro"], tpr["macro"])
+
+
+plt.plot(fpr["macro"], tpr["macro"], color='darkorange', linewidth=4, label='Naive Bayes')
+
+## ROC for SVC
+
+decision_SVC = clf_SVC.decision_function(x_test)
+
+for i in range(n_classes):
+	fpr[i], tpr[i], _ = roc_curve(y_test_binary[:, i], decision_SVC[:, i])
+
+all_fpr = np.unique(np.concatenate([fpr[i] for i in range(n_classes)]))
+
+mean_tpr = np.zeros_like(all_fpr)
+for i in range(n_classes):
+    mean_tpr += interp(all_fpr, fpr[i], tpr[i])
+mean_tpr /= n_classes
+
+fpr["macro"] = all_fpr
+tpr["macro"] = mean_tpr
+roc_auc["macro"] = auc(fpr["macro"], tpr["macro"])
+
+plt.plot(fpr["macro"], tpr["macro"], color='navy', linewidth=4, label='SVC')
+
+
+# Finish plotting
+
+plt.plot([0, 1], [0, 1], 'k--', lw=lw)
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('ROC Curves')
+plt.legend(loc="lower right")
+plt.show()
